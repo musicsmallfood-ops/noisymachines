@@ -1,0 +1,72 @@
+:root {
+  --display-block: block;
+  --position-absolute: absolute;
+  --coordinate-origin: 0;
+  --overflow-hidden: hidden;
+  --viewport-width: 100vw;
+  --viewport-height: 100vh;
+  --zero-measure: 0;
+  --full-size: 100%;
+  
+  --color-black-hex: #000000;
+  --rgb-value-black: 0;
+  --rgb-value-scanline-red: 18;
+  --rgb-value-scanline-green: 16;
+  --rgb-value-scanline-blue: 16;
+  
+  --opacity-vignette-outer: 0.8;
+  --opacity-vignette-inner: 0;
+  --opacity-scanline-primary: 0;
+  --opacity-scanline-secondary: 0.1;
+  
+  --empty-string: "";
+  
+  --vignette-inner-color: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-vignette-inner));
+  --vignette-outer-color: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-vignette-outer));
+  --vignette-radial-type: radial;
+  --vignette-shape: circle;
+  
+  --scanline-color-primary: rgba(var(--rgb-value-scanline-red), var(--rgb-value-scanline-green), var(--rgb-value-scanline-blue), var(--opacity-scanline-primary));
+  --scanline-color-secondary: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-scanline-secondary));
+  --scanline-size: 2px;
+  --scanline-multiplier: 2;
+  --scanline-gradient-direction: to bottom;
+  
+  --overlay-z-index: 10;
+  --pointer-events-none: none;
+}
+
+body {
+  margin: var(--zero-measure);
+  padding: var(--zero-measure);
+  overflow: var(--overflow-hidden);
+  background-color: var(--color-black-hex);
+  width: var(--viewport-width);
+  height: var(--viewport-height);
+}
+
+body::after {
+  content: var(--empty-string);
+  display: var(--display-block);
+  position: var(--position-absolute);
+  top: var(--coordinate-origin);
+  left: var(--coordinate-origin);
+  width: var(--full-size);
+  height: var(--full-size);
+  background: 
+    radial-gradient(var(--vignette-shape), var(--vignette-inner-color), var(--vignette-outer-color)),
+    repeating-linear-gradient(var(--scanline-gradient-direction), var(--scanline-color-primary), var(--scanline-color-primary) var(--scanline-size), var(--scanline-color-secondary) var(--scanline-size), var(--scanline-color-secondary) calc(var(--scanline-size) * var(--scanline-multiplier)));
+  pointer-events: var(--pointer-events-none);
+  z-index: var(--overlay-z-index);
+}
+
+#tv-noise-canvas {
+  display: var(--display-block);
+  position: var(--position-absolute);
+  top: var(--coordinate-origin);
+  left: var(--coordinate-origin);
+  width: var(--viewport-width);
+  height: var(--viewport-height);
+  border: var(--zero-measure);
+  outline: var(--zero-measure);
+}
