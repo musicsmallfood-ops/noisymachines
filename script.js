@@ -20,9 +20,25 @@ const CRT_LINE_GREEN_INTENSITY = 0;
 const CRT_LINE_BLUE_INTENSITY = 0;
 const CRT_LINE_ALPHA_TRANSPARENCY = 0.3;
 const NUMERIC_ADJUSTMENT_VALUE = 1;
+const NUMERIC_HALF_DIVISOR = 2;
+
+const HUM_BAR_HEIGHT_DIVISOR = 4;
+const HUM_BAR_SPEED_PIXELS = 2;
+const HUM_BAR_RED_INTENSITY = 255;
+const HUM_BAR_GREEN_INTENSITY = 255;
+const HUM_BAR_BLUE_INTENSITY = 255;
+const HUM_BAR_ALPHA_TRANSPARENCY = 0.05;
+
+const FLICKER_INTENSITY_MIN = 0.95;
+const FLICKER_INTENSITY_MAX = 1.05;
+
+const LUMINANCE_INTENSITY_FACTOR = 0.9;
+const CHROMINANCE_INTENSITY_FACTOR = 0.1;
 
 const tvCanvas = document.getElementById(TV_CANVAS_ELEMENT_ID);
 const tvContext = tvCanvas.getContext(CANVAS_RENDERING_MODE);
+
+let humBarVerticalPosition = ORIGIN_COORDINATE;
 
 function synchronizeCanvasSize() {
     tvCanvas.width = window.innerWidth;
@@ -58,6 +74,26 @@ function applyCrtHorizontalLines() {
     }
 }
 
+function applyHumBarEffect() {
+    const canvasWidth = tvCanvas.width;
+    const canvasHeight = tvCanvas.height;
+    const humBarHeight = canvasHeight / HUM_BAR_HEIGHT_DIVISOR;
+
+    tvContext.fillStyle = constructRgbaString(
+        HUM_BAR_RED_INTENSITY,
+        HUM_BAR_GREEN_INTENSITY,
+        HUM_BAR_BLUE_INTENSITY,
+        HUM_BAR_ALPHA_TRANSPARENCY
+    );
+
+    tvContext.fillRect(ORIGIN_COORDINATE, humBarVerticalPosition, canvasWidth, humBarHeight);
+
+    humBarVerticalPosition += HUM_BAR_SPEED_PIXELS;
+    if (humBarVerticalPosition >= canvasHeight) {
+        humBarVerticalPosition = -humBarHeight;
+    }
+}
+
 function generateNoiseFrame() {
     const currentWidth = tvCanvas.width;
     const currentHeight = tvCanvas.height;
@@ -69,20 +105,29 @@ function generateNoiseFrame() {
     const frameImageData = tvContext.createImageData(currentWidth, currentHeight);
     const pixelBuffer = frameImageData.data;
     const bufferLength = pixelBuffer.length;
+    const flickerFactor = Math.random() * (FLICKER_INTENSITY_MAX - FLICKER_INTENSITY_MIN) + FLICKER_INTENSITY_MIN;
 
     for (let bufferPointer = ORIGIN_COORDINATE; bufferPointer < bufferLength; bufferPointer += PIXEL_DATA_STRIDE) {
-        const randomRedIntensity = Math.floor(Math.random() * INTENSITY_RANGE_LIMIT);
-        const randomGreenIntensity = Math.floor(Math.random() * INTENSITY_RANGE_LIMIT);
-        const randomBlueIntensity = Math.floor(Math.random() * INTENSITY_RANGE_LIMIT);
+        const baseLuminance = Math.random() * INTENSITY_RANGE_LIMIT * flickerFactor;
 
-        pixelBuffer[bufferPointer + COLOR_CHANNEL_RED_INDEX] = randomRedIntensity;
-        pixelBuffer[bufferPointer + COLOR_CHANNEL_GREEN_INDEX] = randomGreenIntensity;
-        pixelBuffer[bufferPointer + COLOR_CHANNEL_BLUE_INDEX] = randomBlueIntensity;
+        const chrominanceRangeOffset = INTENSITY_RANGE_LIMIT / NUMERIC_HALF_DIVISOR;
+        const redChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+        const greenChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+        const blueChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+
+        const redFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + redChrominance;
+        const greenFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + greenChrominance;
+        const blueFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + blueChrominance;
+
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_RED_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(redFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_GREEN_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(greenFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_BLUE_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(blueFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
         pixelBuffer[bufferPointer + COLOR_CHANNEL_ALPHA_INDEX] = OPAQUE_ALPHA_VALUE;
     }
 
     tvContext.putImageData(frameImageData, ORIGIN_COORDINATE, ORIGIN_COORDINATE);
     applyCrtHorizontalLines();
+    applyHumBarEffect();
 }
 
 function executeAnimationCycle() {
