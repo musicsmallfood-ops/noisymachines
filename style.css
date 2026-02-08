@@ -1,28 +1,30 @@
 :root {
-    --full-viewport-width: 100vw;
-    --full-viewport-height: 100vh;
-    --zero-pixel-spacing: 0px;
-    --hidden-overflow: hidden;
-    --absolute-position: absolute;
-    --top-origin: 0;
-    --left-origin: 0;
-    --background-base-color: black;
+  --display-block: block;
+  --position-absolute: absolute;
+  --coordinate-origin: 0;
+  --overflow-hidden: hidden;
+  --viewport-width: 100vw;
+  --viewport-height: 100vh;
+  --zero-measure: 0;
+  --pure-black-color: #000000;
 }
 
-body, html {
-    margin: var(--zero-pixel-spacing);
-    padding: var(--zero-pixel-spacing);
-    width: var(--full-viewport-width);
-    height: var(--full-viewport-height);
-    overflow: var(--hidden-overflow);
-    background-color: var(--background-base-color);
+body {
+  margin: var(--zero-measure);
+  padding: var(--zero-measure);
+  overflow: var(--overflow-hidden);
+  background-color: var(--pure-black-color);
+  width: var(--viewport-width);
+  height: var(--viewport-height);
 }
 
 #tv-noise-canvas {
-    position: var(--absolute-position);
-    top: var(--top-origin);
-    left: var(--left-origin);
-    width: var(--full-viewport-width);
-    height: var(--full-viewport-height);
-    display: block;
+  display: var(--display-block);
+  position: var(--position-absolute);
+  top: var(--coordinate-origin);
+  left: var(--coordinate-origin);
+  width: var(--viewport-width);
+  height: var(--viewport-height);
+  border: var(--zero-measure);
+  outline: var(--zero-measure);
 }
