@@ -1,15 +1,24 @@
 const CANVAS_ID = "tv-noise-canvas";
 const LOGO_ID = "tv-logo";
 const CONTEXT_TYPE = "2d";
-const NOISE_ALPHA_VALUE = 180;
+const NOISE_ALPHA_VALUE = 120;
 const RGB_MAX_VALUE = 256;
 const CHANNELS_PER_PIXEL = 4;
 const HUM_BAR_HEIGHT = 40;
 const HUM_BAR_SPEED = 2;
 const HUM_BAR_BRIGHTNESS_FACTOR = 1.5;
-const LOGO_FLIP_INTERVAL = 3000;
-const LOGO_FLIP_PROBABILITY = 0.5;
-const COORDINATE_OFFSET_PERCENT = "-50%";
+const COORDINATE_OFFSET_VALUE = "-50%";
+const FLOAT_AMPLITUDE_X = 20;
+const FLOAT_AMPLITUDE_Y = 15;
+const FLOAT_SPEED_X = 0.002;
+const FLOAT_SPEED_Y = 0.003;
+const TRANSFORM_FUNC_TRANSLATE = "translate(";
+const TRANSFORM_FUNC_CALC = "calc(";
+const TRANSFORM_FUNC_CLOSE = ")";
+const CSS_DELIMITER_COMMA = ", ";
+const CSS_OPERATOR_PLUS = " + ";
+const CSS_UNIT_PX = "px";
+const EVENT_RESIZE = "resize";
 
 const canvas = document.getElementById(CANVAS_ID);
 const ctx = canvas.getContext(CONTEXT_TYPE);
@@ -54,25 +63,25 @@ function applyHumBar(imageData) {
     }
 }
 
-function updateLogoFlipping() {
-    const flipX = Math.random() > LOGO_FLIP_PROBABILITY;
-    const flipY = Math.random() > LOGO_FLIP_PROBABILITY;
+function updateLogoAnimation(time) {
+    const offsetX = Math.sin(time * FLOAT_SPEED_X) * FLOAT_AMPLITUDE_X;
+    const offsetY = Math.cos(time * FLOAT_SPEED_Y) * FLOAT_AMPLITUDE_Y;
     
-    const scaleX = flipX ? -1 : 1;
-    const scaleY = flipY ? -1 : 1;
+    const transformX = TRANSFORM_FUNC_CALC + COORDINATE_OFFSET_VALUE + CSS_OPERATOR_PLUS + offsetX + CSS_UNIT_PX + TRANSFORM_FUNC_CLOSE;
+    const transformY = TRANSFORM_FUNC_CALC + COORDINATE_OFFSET_VALUE + CSS_OPERATOR_PLUS + offsetY + CSS_UNIT_PX + TRANSFORM_FUNC_CLOSE;
 
-    logo.style.transform = `translate(${COORDINATE_OFFSET_PERCENT}, ${COORDINATE_OFFSET_PERCENT}) scale(${scaleX}, ${scaleY})`;
+    logo.style.transform = TRANSFORM_FUNC_TRANSLATE + transformX + CSS_DELIMITER_COMMA + transformY + TRANSFORM_FUNC_CLOSE;
 }
 
-function loop() {
+function loop(time) {
     const imageData = ctx.createImageData(canvas.width, canvas.height);
     generateNoise(imageData);
     applyHumBar(imageData);
     ctx.putImageData(imageData, 0, 0);
+    updateLogoAnimation(time);
     requestAnimationFrame(loop);
 }
 
-window.addEventListener("resize", resize);
+window.addEventListener(EVENT_RESIZE, resize);
 resize();
-setInterval(updateLogoFlipping, LOGO_FLIP_INTERVAL);
-loop();
+requestAnimationFrame(loop);
