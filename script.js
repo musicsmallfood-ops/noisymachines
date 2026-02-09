@@ -240,6 +240,10 @@ function startAnimation() {
 }
 
 window.addEventListener(EVENT_RESIZE, resize);
+document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+});
 logoImage.onload = startAnimation;
 
 if (logoImage.complete) {
