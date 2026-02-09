@@ -32,7 +32,8 @@
   --scanline-multiplier: 2;
   --scanline-gradient-direction: to bottom;
 
-  --overlay-z-index: 10;
+  --overlay-z-index-vignette: 10;
+  --overlay-z-index-scanline: 11;
   --pointer-events-none: none;
 
   --logo-width: 20vw;
@@ -42,8 +43,12 @@
   --negative-offset: -50%;
   --box-sizing-border: border-box;
 
-  --crt-overlay-background: radial-gradient(var(--vignette-shape), var(--vignette-inner-color), var(--vignette-outer-color)),
-    repeating-linear-gradient(var(--scanline-gradient-direction), var(--scanline-color-primary), var(--scanline-color-primary) var(--scanline-size), var(--scanline-color-secondary) var(--scanline-size), var(--scanline-color-secondary) calc(var(--scanline-size) * var(--scanline-multiplier)));
+  --vignette-background: radial-gradient(var(--vignette-shape), var(--vignette-inner-color), var(--vignette-outer-color));
+  --scanline-background: repeating-linear-gradient(var(--scanline-gradient-direction), var(--scanline-color-primary), var(--scanline-color-primary) var(--scanline-size), var(--scanline-color-secondary) var(--scanline-size), var(--scanline-color-secondary) calc(var(--scanline-size) * var(--scanline-multiplier)));
+
+  --noise-contrast-value: 150%;
+  --noise-brightness-value: 80%;
+  --noise-canvas-filter: contrast(var(--noise-contrast-value)) brightness(var(--noise-brightness-value));
 }
 
 * {
@@ -69,9 +74,22 @@ body::after {
   left: var(--coordinate-origin);
   width: var(--full-size);
   height: var(--full-size);
-  background: var(--crt-overlay-background);
+  background: var(--vignette-background);
   pointer-events: var(--pointer-events-none);
-  z-index: var(--overlay-z-index);
+  z-index: var(--overlay-z-index-vignette);
+}
+
+body::before {
+  content: var(--empty-string);
+  display: var(--display-block);
+  position: var(--position-fixed);
+  top: var(--coordinate-origin);
+  left: var(--coordinate-origin);
+  width: var(--full-size);
+  height: var(--full-size);
+  background: var(--scanline-background);
+  pointer-events: var(--pointer-events-none);
+  z-index: var(--overlay-z-index-scanline);
 }
 
 #tv-logo {
@@ -93,4 +111,5 @@ body::after {
   border: var(--zero-measure);
   outline: var(--zero-measure);
   z-index: var(--canvas-z-index);
+  filter: var(--noise-canvas-filter);
 }
