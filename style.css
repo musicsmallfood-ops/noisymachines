@@ -1,72 +1,79 @@
 :root {
-  --display-block: block;
-  --position-absolute: absolute;
-  --coordinate-origin: 0;
-  --overflow-hidden: hidden;
-  --viewport-width: 100vw;
-  --viewport-height: 100vh;
-  --zero-measure: 0;
-  --full-size: 100%;
-  
-  --color-black-hex: #000000;
-  --rgb-value-black: 0;
-  --rgb-value-scanline-red: 18;
-  --rgb-value-scanline-green: 16;
-  --rgb-value-scanline-blue: 16;
-  
-  --opacity-vignette-outer: 0.8;
-  --opacity-vignette-inner: 0;
-  --opacity-scanline-primary: 0;
-  --opacity-scanline-secondary: 0.1;
-  
-  --empty-string: "";
-  
-  --vignette-inner-color: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-vignette-inner));
-  --vignette-outer-color: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-vignette-outer));
-  --vignette-radial-type: radial;
-  --vignette-shape: circle;
-  
-  --scanline-color-primary: rgba(var(--rgb-value-scanline-red), var(--rgb-value-scanline-green), var(--rgb-value-scanline-blue), var(--opacity-scanline-primary));
-  --scanline-color-secondary: rgba(var(--rgb-value-black), var(--rgb-value-black), var(--rgb-value-black), var(--opacity-scanline-secondary));
-  --scanline-size: 2px;
-  --scanline-multiplier: 2;
-  --scanline-gradient-direction: to bottom;
-  
-  --overlay-z-index: 10;
-  --pointer-events-none: none;
+    --color-black: #000;
+    --coordinate-center: 50%;
+    --logo-width: 20vw;
+    --logo-z-index: 1;
+    --canvas-z-index: 5;
+    --noise-filter: contrast(150%) brightness(80%);
+    --vignette-start: 40%;
+    --vignette-end: 100%;
+    --vignette-opacity: 0.8;
+    --vignette-gradient: radial-gradient(circle, transparent var(--vignette-start), rgba(0, 0, 0, var(--vignette-opacity)) var(--vignette-end));
+    --scanline-gap-opacity: 0.25;
+    --scanline-opacity-red: 0.06;
+    --scanline-opacity-green: 0.02;
+    --scanline-opacity-blue: 0.06;
+    --scanline-gradient: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, var(--scanline-gap-opacity)) 50%), linear-gradient(90deg, rgba(255, 0, 0, var(--scanline-opacity-red)), rgba(0, 255, 0, var(--scanline-opacity-green)), rgba(0, 0, 255, var(--scanline-opacity-blue)));
+    --scanline-thickness: 2px;
+    --scanline-width: 3px;
+    --scanline-size: 100% var(--scanline-thickness), var(--scanline-width) 100%;
+    --overlay-z-index-vignette: 10;
+    --overlay-z-index-scanline: 11;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  margin: var(--zero-measure);
-  padding: var(--zero-measure);
-  overflow: var(--overflow-hidden);
-  background-color: var(--color-black-hex);
-  width: var(--viewport-width);
-  height: var(--viewport-height);
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--color-black);
+}
+
+#tv-logo {
+    position: absolute;
+    top: var(--coordinate-center);
+    left: var(--coordinate-center);
+    width: var(--logo-width);
+    transform: translate(-50%, -50%);
+    z-index: var(--logo-z-index);
+}
+
+#noiseCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--canvas-z-index);
+    filter: var(--noise-filter);
 }
 
 body::after {
-  content: var(--empty-string);
-  display: var(--display-block);
-  position: var(--position-absolute);
-  top: var(--coordinate-origin);
-  left: var(--coordinate-origin);
-  width: var(--full-size);
-  height: var(--full-size);
-  background: 
-    radial-gradient(var(--vignette-shape), var(--vignette-inner-color), var(--vignette-outer-color)),
-    repeating-linear-gradient(var(--scanline-gradient-direction), var(--scanline-color-primary), var(--scanline-color-primary) var(--scanline-size), var(--scanline-color-secondary) var(--scanline-size), var(--scanline-color-secondary) calc(var(--scanline-size) * var(--scanline-multiplier)));
-  pointer-events: var(--pointer-events-none);
-  z-index: var(--overlay-z-index);
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--vignette-gradient);
+    pointer-events: none;
+    z-index: var(--overlay-z-index-vignette);
 }
 
-#tv-noise-canvas {
-  display: var(--display-block);
-  position: var(--position-absolute);
-  top: var(--coordinate-origin);
-  left: var(--coordinate-origin);
-  width: var(--viewport-width);
-  height: var(--viewport-height);
-  border: var(--zero-measure);
-  outline: var(--zero-measure);
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--scanline-gradient);
+    background-size: var(--scanline-size);
+    pointer-events: none;
+    z-index: var(--overlay-z-index-scanline);
 }
