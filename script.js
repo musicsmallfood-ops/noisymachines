@@ -1,78 +1,158 @@
-const CANVAS_ID = "noiseCanvas";
-const LOGO_ID = "tv-logo";
-const CONTEXT_TYPE = "2d";
-const NOISE_ALPHA_VALUE = 180;
-const RGB_MAX_VALUE = 256;
-const CHANNELS_PER_PIXEL = 4;
-const HUM_BAR_HEIGHT = 40;
-const HUM_BAR_SPEED = 2;
-const HUM_BAR_BRIGHTNESS_FACTOR = 1.5;
-const LOGO_FLIP_INTERVAL = 3000;
-const LOGO_FLIP_PROBABILITY = 0.5;
-const COORDINATE_OFFSET_PERCENT = "-50%";
+const TV_CANVAS_ELEMENT_ID = 'tv-noise-canvas';
+const TV_LOGO_ELEMENT_ID = 'tv-logo';
+const CANVAS_RENDERING_MODE = '2d';
+const WINDOW_RESIZE_EVENT = 'resize';
 
-const canvas = document.getElementById(CANVAS_ID);
-const ctx = canvas.getContext(CONTEXT_TYPE);
-const logo = document.getElementById(LOGO_ID);
+const PIXEL_DATA_STRIDE = 4;
+const COLOR_CHANNEL_RED_INDEX = 0;
+const COLOR_CHANNEL_GREEN_INDEX = 1;
+const COLOR_CHANNEL_BLUE_INDEX = 2;
+const COLOR_CHANNEL_ALPHA_INDEX = 3;
 
-let humBarY = 0;
+const INTENSITY_RANGE_LIMIT = 256;
+const OPAQUE_ALPHA_VALUE = 180;
+const ORIGIN_COORDINATE = 0;
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+const MAX_CRT_LINES_PER_FRAME = 10;
+const MIN_CRT_LINE_HEIGHT = 1;
+const MAX_CRT_LINE_HEIGHT = 4;
+const CRT_LINE_RED_INTENSITY = 0;
+const CRT_LINE_GREEN_INTENSITY = 0;
+const CRT_LINE_BLUE_INTENSITY = 0;
+const CRT_LINE_ALPHA_TRANSPARENCY = 0.3;
+const NUMERIC_ADJUSTMENT_VALUE = 1;
+const NUMERIC_HALF_DIVISOR = 2;
+
+const HUM_BAR_HEIGHT_DIVISOR = 4;
+const HUM_BAR_SPEED_PIXELS = 2;
+const HUM_BAR_RED_INTENSITY = 255;
+const HUM_BAR_GREEN_INTENSITY = 255;
+const HUM_BAR_BLUE_INTENSITY = 255;
+const HUM_BAR_ALPHA_TRANSPARENCY = 0.05;
+
+const FLICKER_INTENSITY_MIN = 0.95;
+const FLICKER_INTENSITY_MAX = 1.05;
+
+const LUMINANCE_INTENSITY_FACTOR = 0.9;
+const CHROMINANCE_INTENSITY_FACTOR = 0.1;
+
+const FLIP_INTERVAL_MILLISECONDS = 3000;
+const FLIP_PROBABILITY_THRESHOLD = 0.5;
+const TRANSFORM_OFFSET = '-50%';
+
+const tvCanvas = document.getElementById(TV_CANVAS_ELEMENT_ID);
+const tvLogo = document.getElementById(TV_LOGO_ELEMENT_ID);
+const tvContext = tvCanvas.getContext(CANVAS_RENDERING_MODE);
+
+let humBarVerticalPosition = ORIGIN_COORDINATE;
+
+function synchronizeCanvasSize() {
+    tvCanvas.width = window.innerWidth;
+    tvCanvas.height = window.innerHeight;
 }
 
-function generateNoise(imageData) {
-    const data = imageData.data;
-    const length = data.length;
+function constructRgbaString(red, green, blue, alpha) {
+    const OPEN_PAREN = '(';
+    const CLOSE_PAREN = ')';
+    const COMMA_SPACE = ', ';
+    const RGBA_LABEL = 'rgba';
 
-    for (let i = 0; i < length; i += CHANNELS_PER_PIXEL) {
-        const value = Math.floor(Math.random() * RGB_MAX_VALUE);
-        data[i] = value;
-        data[i + 1] = value;
-        data[i + 2] = value;
-        data[i + 3] = NOISE_ALPHA_VALUE;
+    return RGBA_LABEL + OPEN_PAREN + red + COMMA_SPACE + green + COMMA_SPACE + blue + COMMA_SPACE + alpha + CLOSE_PAREN;
+}
+
+function applyCrtHorizontalLines() {
+    const canvasWidth = tvCanvas.width;
+    const canvasHeight = tvCanvas.height;
+    const numberOfLines = Math.floor(Math.random() * MAX_CRT_LINES_PER_FRAME);
+
+    tvContext.fillStyle = constructRgbaString(
+        CRT_LINE_RED_INTENSITY,
+        CRT_LINE_GREEN_INTENSITY,
+        CRT_LINE_BLUE_INTENSITY,
+        CRT_LINE_ALPHA_TRANSPARENCY
+    );
+
+    for (let lineNumber = ORIGIN_COORDINATE; lineNumber < numberOfLines; lineNumber++) {
+        const lineYPosition = Math.floor(Math.random() * canvasHeight);
+        const lineHeight = Math.floor(Math.random() * (MAX_CRT_LINE_HEIGHT - MIN_CRT_LINE_HEIGHT + NUMERIC_ADJUSTMENT_VALUE)) + MIN_CRT_LINE_HEIGHT;
+
+        tvContext.fillRect(ORIGIN_COORDINATE, lineYPosition, canvasWidth, lineHeight);
     }
 }
 
-function applyHumBar(imageData) {
-    const data = imageData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-    const maxColorValue = RGB_MAX_VALUE - 1;
+function applyHumBarEffect() {
+    const canvasWidth = tvCanvas.width;
+    const canvasHeight = tvCanvas.height;
+    const humBarHeight = canvasHeight / HUM_BAR_HEIGHT_DIVISOR;
 
-    humBarY = (humBarY + HUM_BAR_SPEED) % height;
+    tvContext.fillStyle = constructRgbaString(
+        HUM_BAR_RED_INTENSITY,
+        HUM_BAR_GREEN_INTENSITY,
+        HUM_BAR_BLUE_INTENSITY,
+        HUM_BAR_ALPHA_TRANSPARENCY
+    );
 
-    for (let y = Math.floor(humBarY); y < Math.floor(humBarY) + HUM_BAR_HEIGHT; y++) {
-        if (y < 0 || y >= height) continue;
-        for (let x = 0; x < width; x++) {
-            const index = (y * width + x) * CHANNELS_PER_PIXEL;
-            data[index] = Math.min(maxColorValue, data[index] * HUM_BAR_BRIGHTNESS_FACTOR);
-            data[index + 1] = Math.min(maxColorValue, data[index + 1] * HUM_BAR_BRIGHTNESS_FACTOR);
-            data[index + 2] = Math.min(maxColorValue, data[index + 2] * HUM_BAR_BRIGHTNESS_FACTOR);
-        }
+    tvContext.fillRect(ORIGIN_COORDINATE, humBarVerticalPosition, canvasWidth, humBarHeight);
+
+    humBarVerticalPosition += HUM_BAR_SPEED_PIXELS;
+    if (humBarVerticalPosition >= canvasHeight) {
+        humBarVerticalPosition = -humBarHeight;
     }
 }
 
 function updateLogoFlipping() {
-    const flipX = Math.random() > LOGO_FLIP_PROBABILITY;
-    const flipY = Math.random() > LOGO_FLIP_PROBABILITY;
+    const shouldFlipHorizontal = Math.random() > FLIP_PROBABILITY_THRESHOLD;
+    const shouldFlipVertical = Math.random() > FLIP_PROBABILITY_THRESHOLD;
+
+    const horizontalScale = shouldFlipHorizontal ? -1 : 1;
+    const verticalScale = shouldFlipVertical ? -1 : 1;
+
+    tvLogo.style.transform = `translate(${TRANSFORM_OFFSET}, ${TRANSFORM_OFFSET}) scale(${horizontalScale}, ${verticalScale})`;
+}
+
+function generateNoiseFrame() {
+    const currentWidth = tvCanvas.width;
+    const currentHeight = tvCanvas.height;
     
-    const scaleX = flipX ? -1 : 1;
-    const scaleY = flipY ? -1 : 1;
+    if (currentWidth === ORIGIN_COORDINATE || currentHeight === ORIGIN_COORDINATE) {
+        return;
+    }
 
-    logo.style.transform = `translate(${COORDINATE_OFFSET_PERCENT}, ${COORDINATE_OFFSET_PERCENT}) scale(${scaleX}, ${scaleY})`;
+    const frameImageData = tvContext.createImageData(currentWidth, currentHeight);
+    const pixelBuffer = frameImageData.data;
+    const bufferLength = pixelBuffer.length;
+    const flickerFactor = Math.random() * (FLICKER_INTENSITY_MAX - FLICKER_INTENSITY_MIN) + FLICKER_INTENSITY_MIN;
+
+    for (let bufferPointer = ORIGIN_COORDINATE; bufferPointer < bufferLength; bufferPointer += PIXEL_DATA_STRIDE) {
+        const baseLuminance = Math.random() * INTENSITY_RANGE_LIMIT * flickerFactor;
+
+        const chrominanceRangeOffset = INTENSITY_RANGE_LIMIT / NUMERIC_HALF_DIVISOR;
+        const redChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+        const greenChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+        const blueChrominance = (Math.random() * INTENSITY_RANGE_LIMIT - chrominanceRangeOffset) * CHROMINANCE_INTENSITY_FACTOR;
+
+        const redFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + redChrominance;
+        const greenFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + greenChrominance;
+        const blueFinal = (baseLuminance * LUMINANCE_INTENSITY_FACTOR) + blueChrominance;
+
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_RED_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(redFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_GREEN_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(greenFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_BLUE_INDEX] = Math.max(ORIGIN_COORDINATE, Math.min(Math.floor(blueFinal), INTENSITY_RANGE_LIMIT - NUMERIC_ADJUSTMENT_VALUE));
+        pixelBuffer[bufferPointer + COLOR_CHANNEL_ALPHA_INDEX] = OPAQUE_ALPHA_VALUE;
+    }
+
+    tvContext.putImageData(frameImageData, ORIGIN_COORDINATE, ORIGIN_COORDINATE);
+    applyCrtHorizontalLines();
+    applyHumBarEffect();
 }
 
-function loop() {
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
-    generateNoise(imageData);
-    applyHumBar(imageData);
-    ctx.putImageData(imageData, 0, 0);
-    requestAnimationFrame(loop);
+function executeAnimationCycle() {
+    generateNoiseFrame();
+    requestAnimationFrame(executeAnimationCycle);
 }
 
-window.addEventListener("resize", resize);
-resize();
-setInterval(updateLogoFlipping, LOGO_FLIP_INTERVAL);
-loop();
+window.addEventListener(WINDOW_RESIZE_EVENT, synchronizeCanvasSize);
+
+synchronizeCanvasSize();
+setInterval(updateLogoFlipping, FLIP_INTERVAL_MILLISECONDS);
+executeAnimationCycle();
