@@ -1,4 +1,4 @@
-const CANVAS_ID = "noiseCanvas";
+const CANVAS_ID = "tv-noise-canvas";
 const LOGO_ID = "tv-logo";
 const CONTEXT_TYPE = "2d";
 const NOISE_ALPHA_VALUE = 180;
