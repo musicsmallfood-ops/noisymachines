@@ -9,16 +9,7 @@
     --vignette-end: 100%;
     --vignette-opacity: 0.8;
     --vignette-gradient: radial-gradient(circle, transparent var(--vignette-start), rgba(0, 0, 0, var(--vignette-opacity)) var(--vignette-end));
-    --scanline-gap-opacity: 0.25;
-    --scanline-opacity-red: 0.06;
-    --scanline-opacity-green: 0.02;
-    --scanline-opacity-blue: 0.06;
-    --scanline-gradient: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, var(--scanline-gap-opacity)) 50%), linear-gradient(90deg, rgba(255, 0, 0, var(--scanline-opacity-red)), rgba(0, 255, 0, var(--scanline-opacity-green)), rgba(0, 0, 255, var(--scanline-opacity-blue)));
-    --scanline-thickness: 2px;
-    --scanline-width: 3px;
-    --scanline-size: 100% var(--scanline-thickness), var(--scanline-width) 100%;
     --overlay-z-index-vignette: 10;
-    --overlay-z-index-scanline: 11;
 }
 
 * {
@@ -35,12 +26,13 @@ body {
 }
 
 #tv-logo {
-    position: absolute;
-    top: var(--coordinate-center);
-    left: var(--coordinate-center);
-    width: var(--logo-width);
-    transform: translate(-50%, -50%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: var(--logo-z-index);
+    pointer-events: none;
 }
 
 #tv-noise-canvas {
@@ -65,15 +57,3 @@ body::after {
     z-index: var(--overlay-z-index-vignette);
 }
 
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--scanline-gradient);
-    background-size: var(--scanline-size);
-    pointer-events: none;
-    z-index: var(--overlay-z-index-scanline);
-}

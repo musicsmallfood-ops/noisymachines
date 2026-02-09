@@ -1,87 +1,185 @@
-const CANVAS_ID = "tv-noise-canvas";
-const LOGO_ID = "tv-logo";
-const CONTEXT_TYPE = "2d";
+const CANVAS_ID_NOISE = "tv-noise-canvas";
+const CANVAS_ID_LOGO = "tv-logo";
+const CONTEXT_TYPE_2D = "2d";
 const NOISE_ALPHA_VALUE = 120;
 const RGB_MAX_VALUE = 256;
+const RGB_MAX_INDEX = 255;
 const CHANNELS_PER_PIXEL = 4;
 const HUM_BAR_HEIGHT = 40;
 const HUM_BAR_SPEED = 2;
 const HUM_BAR_BRIGHTNESS_FACTOR = 1.5;
-const COORDINATE_OFFSET_VALUE = "-50%";
-const FLOAT_AMPLITUDE_X = 20;
-const FLOAT_AMPLITUDE_Y = 15;
-const FLOAT_SPEED_X = 0.002;
-const FLOAT_SPEED_Y = 0.003;
-const TRANSFORM_FUNC_TRANSLATE = "translate(";
-const TRANSFORM_FUNC_CALC = "calc(";
-const TRANSFORM_FUNC_CLOSE = ")";
-const CSS_DELIMITER_COMMA = ", ";
-const CSS_OPERATOR_PLUS = " + ";
-const CSS_UNIT_PX = "px";
 const EVENT_RESIZE = "resize";
 
-const canvas = document.getElementById(CANVAS_ID);
-const ctx = canvas.getContext(CONTEXT_TYPE);
-const logo = document.getElementById(LOGO_ID);
+const LOGO_SRC = "favicon.png";
+const ROTATION_SPEED = 0.002;
+const REFLECTION_INTERVAL_X = 3000;
+const REFLECTION_INTERVAL_Y = 5000;
+const TRAIL_DELAY_GREEN = 4;
+const TRAIL_DELAY_BLUE = 8;
+const MAX_HISTORY_LENGTH = 20;
 
-let humBarY = 0;
+const LOGO_WIDTH_SCALE = 0.2;
+const HALF_DIVISOR = 2;
+const ZERO_VALUE = 0;
+const ONE_VALUE = 1;
+const NEGATIVE_ONE_VALUE = -1;
+const REFLECTION_TOGGLE_MODULO = 2;
+
+const COMPOSITE_SCREEN = "screen";
+const COMPOSITE_SOURCE_IN = "source-in";
+const COLOR_RED = "red";
+const COLOR_GREEN = "green";
+const COLOR_BLUE = "blue";
+const ALPHA_CHANNEL_OFFSET = 3;
+
+const noiseCanvas = document.getElementById(CANVAS_ID_NOISE);
+const noiseCtx = noiseCanvas.getContext(CONTEXT_TYPE_2D);
+const logoCanvas = document.getElementById(CANVAS_ID_LOGO);
+const logoCtx = logoCanvas.getContext(CONTEXT_TYPE_2D);
+
+const logoImage = new Image();
+logoImage.src = LOGO_SRC;
+
+let humBarY = ZERO_VALUE;
+let stateHistory = [];
+let canvasesPrepared = false;
+let animationStarted = false;
+
+const colorCanvases = {
+    [COLOR_RED]: document.createElement('canvas'),
+    [COLOR_GREEN]: document.createElement('canvas'),
+    [COLOR_BLUE]: document.createElement('canvas')
+};
 
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    noiseCanvas.width = width;
+    noiseCanvas.height = height;
+    logoCanvas.width = width;
+    logoCanvas.height = height;
 }
 
 function generateNoise(imageData) {
     const data = imageData.data;
     const length = data.length;
-
-    for (let i = 0; i < length; i += CHANNELS_PER_PIXEL) {
+    for (let i = ZERO_VALUE; i < length; i += CHANNELS_PER_PIXEL) {
         const value = Math.floor(Math.random() * RGB_MAX_VALUE);
         data[i] = value;
-        data[i + 1] = value;
-        data[i + 2] = value;
-        data[i + 3] = NOISE_ALPHA_VALUE;
+        data[i + ONE_VALUE] = value;
+        data[i + HALF_DIVISOR] = value;
+        data[i + ALPHA_CHANNEL_OFFSET] = NOISE_ALPHA_VALUE;
     }
 }
 
 function applyHumBar(imageData) {
     const data = imageData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-    const maxColorValue = RGB_MAX_VALUE - 1;
+    const width = noiseCanvas.width;
+    const height = noiseCanvas.height;
+    const maxColorValue = RGB_MAX_INDEX;
 
     humBarY = (humBarY + HUM_BAR_SPEED) % height;
 
-    for (let y = Math.floor(humBarY); y < Math.floor(humBarY) + HUM_BAR_HEIGHT; y++) {
-        if (y < 0 || y >= height) continue;
-        for (let x = 0; x < width; x++) {
+    const startY = Math.floor(humBarY);
+    const endY = startY + HUM_BAR_HEIGHT;
+
+    for (let y = startY; y < endY; y++) {
+        if (y < ZERO_VALUE || y >= height) continue;
+        for (let x = ZERO_VALUE; x < width; x++) {
             const index = (y * width + x) * CHANNELS_PER_PIXEL;
             data[index] = Math.min(maxColorValue, data[index] * HUM_BAR_BRIGHTNESS_FACTOR);
-            data[index + 1] = Math.min(maxColorValue, data[index + 1] * HUM_BAR_BRIGHTNESS_FACTOR);
-            data[index + 2] = Math.min(maxColorValue, data[index + 2] * HUM_BAR_BRIGHTNESS_FACTOR);
+            data[index + ONE_VALUE] = Math.min(maxColorValue, data[index + ONE_VALUE] * HUM_BAR_BRIGHTNESS_FACTOR);
+            data[index + HALF_DIVISOR] = Math.min(maxColorValue, data[index + HALF_DIVISOR] * HUM_BAR_BRIGHTNESS_FACTOR);
         }
     }
 }
 
-function updateLogoAnimation(time) {
-    const offsetX = Math.sin(time * FLOAT_SPEED_X) * FLOAT_AMPLITUDE_X;
-    const offsetY = Math.cos(time * FLOAT_SPEED_Y) * FLOAT_AMPLITUDE_Y;
-    
-    const transformX = TRANSFORM_FUNC_CALC + COORDINATE_OFFSET_VALUE + CSS_OPERATOR_PLUS + offsetX + CSS_UNIT_PX + TRANSFORM_FUNC_CLOSE;
-    const transformY = TRANSFORM_FUNC_CALC + COORDINATE_OFFSET_VALUE + CSS_OPERATOR_PLUS + offsetY + CSS_UNIT_PX + TRANSFORM_FUNC_CLOSE;
+function prepareColorCanvases() {
+    const w = logoImage.width;
+    const h = logoImage.height;
+    if (w === ZERO_VALUE) return;
 
-    logo.style.transform = TRANSFORM_FUNC_TRANSLATE + transformX + CSS_DELIMITER_COMMA + transformY + TRANSFORM_FUNC_CLOSE;
+    const colors = [COLOR_RED, COLOR_GREEN, COLOR_BLUE];
+    for (let i = ZERO_VALUE; i < colors.length; i++) {
+        const color = colors[i];
+        const c = colorCanvases[color];
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext(CONTEXT_TYPE_2D);
+        ctx.drawImage(logoImage, ZERO_VALUE, ZERO_VALUE);
+        ctx.globalCompositeOperation = COMPOSITE_SOURCE_IN;
+        ctx.fillStyle = color;
+        ctx.fillRect(ZERO_VALUE, ZERO_VALUE, w, h);
+    }
+}
+
+function drawChannel(color, state, centerX, centerY, logoWidth, logoHeight) {
+    if (!state) return;
+    logoCtx.save();
+    logoCtx.translate(centerX, centerY);
+    logoCtx.rotate(state.rotation);
+    logoCtx.scale(state.reflectionX, state.reflectionY);
+    logoCtx.globalCompositeOperation = COMPOSITE_SCREEN;
+    const drawX = -logoWidth / HALF_DIVISOR;
+    const drawY = -logoHeight / HALF_DIVISOR;
+    logoCtx.drawImage(colorCanvases[color], drawX, drawY, logoWidth, logoHeight);
+    logoCtx.restore();
+}
+
+function updateLogoAnimation(time) {
+    logoCtx.clearRect(ZERO_VALUE, ZERO_VALUE, logoCanvas.width, logoCanvas.height);
+    
+    if (!logoImage.complete || logoImage.width === ZERO_VALUE) {
+        return;
+    }
+    if (!canvasesPrepared) {
+        prepareColorCanvases();
+        canvasesPrepared = true;
+    }
+
+    const rotation = time * ROTATION_SPEED;
+    const reflectionX = (Math.floor(time / REFLECTION_INTERVAL_X) % REFLECTION_TOGGLE_MODULO === ZERO_VALUE) ? ONE_VALUE : NEGATIVE_ONE_VALUE;
+    const reflectionY = (Math.floor(time / REFLECTION_INTERVAL_Y) % REFLECTION_TOGGLE_MODULO === ZERO_VALUE) ? ONE_VALUE : NEGATIVE_ONE_VALUE;
+
+    stateHistory.unshift({ rotation, reflectionX, reflectionY });
+    if (stateHistory.length > MAX_HISTORY_LENGTH) {
+        stateHistory.pop();
+    }
+
+    const centerX = logoCanvas.width / HALF_DIVISOR;
+    const centerY = logoCanvas.height / HALF_DIVISOR;
+    const logoWidth = logoCanvas.width * LOGO_WIDTH_SCALE;
+    const logoHeight = (logoImage.height / logoImage.width) * logoWidth;
+
+    const blueIndex = Math.min(TRAIL_DELAY_BLUE, stateHistory.length - ONE_VALUE);
+    const greenIndex = Math.min(TRAIL_DELAY_GREEN, stateHistory.length - ONE_VALUE);
+
+    drawChannel(COLOR_BLUE, stateHistory[blueIndex], centerX, centerY, logoWidth, logoHeight);
+    drawChannel(COLOR_GREEN, stateHistory[greenIndex], centerX, centerY, logoWidth, logoHeight);
+    drawChannel(COLOR_RED, stateHistory[ZERO_VALUE], centerX, centerY, logoWidth, logoHeight);
 }
 
 function loop(time) {
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
+    const imageData = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
     generateNoise(imageData);
     applyHumBar(imageData);
-    ctx.putImageData(imageData, 0, 0);
+    noiseCtx.putImageData(imageData, ZERO_VALUE, ZERO_VALUE);
     updateLogoAnimation(time);
     requestAnimationFrame(loop);
 }
 
+function startAnimation() {
+    if (animationStarted) {
+        return;
+    }
+    animationStarted = true;
+    resize();
+    requestAnimationFrame(loop);
+}
+
 window.addEventListener(EVENT_RESIZE, resize);
-resize();
-requestAnimationFrame(loop);
+logoImage.onload = startAnimation;
+
+if (logoImage.complete) {
+    startAnimation();
+}
